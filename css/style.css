@@ -1,0 +1,120 @@
+/* 全体の基本的な設定 */
+body {
+  font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', Meiryo, sans-serif;
+  background-color: #fdf5e6; /* 優しいクリーム色の背景 */
+  margin: 0;
+  padding: 0;
+  display: flex;
+  justify-content: center;
+  height: 100vh;
+}
+
+/* スマホ画面風のチャットコンテナ */
+.chat-container {
+  width: 100%;
+  max-width: 500px;
+  background-color: #fff;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
+}
+
+/* ヘッダー */
+header {
+  background-color: #ff9d00; /* 暖かみのあるオレンジ */
+  color: #fff;
+  text-align: center;
+  padding: 15px;
+}
+
+header h1 {
+  margin: 0;
+  font-size: 1.6rem;
+}
+
+header p {
+  margin: 5px 0 0;
+  font-size: 0.9rem;
+}
+
+/* チャット表示エリア */
+#chat-area {
+  flex: 1;
+  padding: 20px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  background-color: #fffaf0;
+}
+
+/* メッセージ全体（アイコンと吹き出しのセット用） */
+.message {
+  display: flex;
+  max-width: 85%;
+}
+
+/* だいちゃん（左側） */
+.message.daichan {
+  align-self: flex-start;
+}
+
+/* ユーザー（右側） */
+.message.user {
+  align-self: flex-end;
+  flex-direction: row-reverse;
+}
+
+/* 吹き出しのデザイン */
+.bubble {
+  padding: 12px 18px;
+  border-radius: 20px;
+  font-size: 1.2rem; /* 高齢者向けに文字を大きめに設定 */
+  line-height: 1.5;
+  word-wrap: break-word;
+}
+
+.daichan .bubble {
+  background-color: #ffe4b5; /* だいちゃんの吹き出し色 */
+  color: #333;
+  border-bottom-left-radius: 2px;
+}
+
+.user .bubble {
+  background-color: #87ceeb; /* ユーザーの吹き出し色 */
+  color: #fff;
+  border-bottom-right-radius: 2px;
+}
+
+/* 入力エリア */
+footer {
+  display: flex;
+  padding: 15px;
+  background-color: #f1f1f1;
+  border-top: 1px solid #ddd;
+}
+
+#user-input {
+  flex: 1;
+  padding: 15px;
+  font-size: 1.2rem;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  margin-right: 10px;
+}
+
+#send-btn {
+  padding: 10px 20px;
+  font-size: 1.2rem;
+  font-weight: bold;
+  background-color: #ff9d00;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+#send-btn:hover {
+  background-color: #e68a00;
+}

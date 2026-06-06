@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>認知症コミュニケーションチャットボット「だいちゃん」</title>
+  <!-- CSSの読み込み -->
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <div class="chat-container">
+    <!-- ヘッダー部分 -->
+    <header>
+      <h1>だいちゃん</h1>
+      <p>〜 のんびりお話ししましょう 〜</p>
+    </header>
+
+    <!-- チャットのやり取りが表示されるエリア -->
+    <main id="chat-area">
+      <!-- 最初の挨拶（動作確認用のダミーデータ） -->
+      <div class="message daichan">
+        <div class="bubble">こんにちは！だいちゃんです。今日はお話しできて嬉しいな。</div>
+      </div>
+    </main>
+
+    <!-- 入力と送信エリア -->
+    <footer>
+      <input type="text" id="user-input" placeholder="ここにお返事を書いてね" autocomplete="off">
+      <button id="send-btn">送信</button>
+    </footer>
+  </div>
+
+  <!-- JavaScriptの読み込み (Firebaseを使うので type="module" にしておきます) -->
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>
