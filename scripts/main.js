@@ -4,7 +4,7 @@
 import { GoogleGenerativeAI } from "https://esm.run/@google/generative-ai";
 import { daichanData } from "./data.js"; 
 
-// ★変更：コードに直接書かず、画面を開いた時に入力してもらう仕組み
+// コードに直接書かず、画面を開いた時に入力してもらう仕組み（セキュリティ対策）
 let API_KEY = localStorage.getItem("gemini_api_key");
 if (!API_KEY) {
   API_KEY = prompt("だいちゃんと話すための「Gemini APIキー」を入力してください。\n（※キーはあなたのブラウザ内にのみ安全に保存されます）");
@@ -18,12 +18,12 @@ if (!API_KEY) {
 const genAI = new GoogleGenerativeAI(API_KEY);
 
 // ==========================================
-// 2. AIの記憶と指示書（会話例もここに復活）
+// 2. AIの記憶と指示書（会話深掘り強化版）
 // ==========================================
 const daichanInstructions = `あなたは認知症高齢者の優しく親しみやすい話し相手「だいちゃん」です。お孫さんのような、温かくフレンドリーな存在として接してください。
 
 【絶対に守るルール】
-- 相手が答えた言葉（例：ドキュメンタリー）については、絶対に唐突に別の話題に切り替えないでください。「どんな内容？」「誰と？」「一番印象に残っているのは？」など、同じ話題を最低3〜4往復は深掘りして盛り上げてください。
+- 相手が答えた言葉（例：ドキュメンタリー、仕事など）については、絶対に唐突に別の話題に切り替えないでください。「どんな内容？」「誰と？」「一番印象に残っているのは？」など、同じ話題を最低3〜4往復は深掘りして盛り上げてください。
 - 固い敬語は禁止ですが、語尾が「〜かな？」ばかりになるのも絶対に禁止です。「〜の？」「〜ですか？」「〜だね」など毎回語尾を自然に変化させてください。
 - 相手を疲れさせないよう、1回の返信につき質問は絶対に1つまでにしてください。
 - 食べ物の話題ばかりになるのは絶対に禁止です。
@@ -72,6 +72,8 @@ const db = getFirestore(app);
 // 4. 画面とスレッドの管理
 // ==========================================
 const chatArea = document.getElementById("chat-area");
+const userInput = document.getElementById("user-input");
+const sendBtn = document.getElementById("send-btn");
 let currentThreadId = null;
 let unsubscribe = null;
 
@@ -163,20 +165,19 @@ function listenToHistory() {
 
 function checkInputAvailability() {
   const todayThreadId = `chat_${getTodayDateString()}`;
-  const userInput = document.getElementById("user-input");
-  const sendBtn = document.getElementById("send-btn");
   
   if (currentThreadId === todayThreadId) {
     userInput.disabled = false;
     sendBtn.disabled = false;
-    sendBtn.style.display = ""; // ★今日の会話なら↑ボタンを表示する
+    sendBtn.style.display = ""; // 今日の会話なら↑ボタンを表示する
     userInput.placeholder = "だいちゃんと会話";
   } else {
     userInput.disabled = true;
     sendBtn.disabled = true;
-    sendBtn.style.display = "none"; // ★過去の会話なら↑ボタンを完全に消す
+    sendBtn.style.display = "none"; // 過去の会話なら↑ボタンを完全に非表示
     userInput.placeholder = "過去の会話は閲覧のみです";
     userInput.value = ""; 
+    userInput.style.height = "auto"; // 高さもリセット
   }
 }
 
@@ -222,22 +223,21 @@ initializeAppRoutine();
 // ==========================================
 // 5. ユーザー送信時の処理
 // ==========================================
-document.getElementById("send-btn").addEventListener("click", async () => {
+sendBtn.addEventListener("click", async () => {
   const todayThreadId = `chat_${getTodayDateString()}`;
   if (currentThreadId !== todayThreadId) return; 
 
-  const userInput = document.getElementById("user-input");
   const userText = userInput.value.trim();
   if (userText === "") return;
 
   saveMessage("user", userText);
   userInput.value = ""; 
+  userInput.style.height = "auto"; // ★送信した瞬間に、入力欄の高さを元の1行に戻す
 
   try {
     const randomTopic = daichanData.topics[Math.floor(Math.random() * daichanData.topics.length)];
     const randomSong = daichanData.songs[Math.floor(Math.random() * daichanData.songs.length)];
 
-    // ★修正：話題を勝手に変えないよう、カンペの発動条件を極限まで厳しくしました
     const hiddenPrompt = `相手の言葉: 「${userText}」
 
 (※AIへのシステム指示：相手が何か答えた場合は、絶対に話題を変えずにそのまま深掘りしてください。
@@ -254,16 +254,25 @@ document.getElementById("send-btn").addEventListener("click", async () => {
   }
 });
 
-document.getElementById("user-input").addEventListener("keydown", function(e) {
+// キーボードでのEnter送信処理（Shift+Enterなら改行できるようにする）
+userInput.addEventListener("keydown", function(e) {
   if (e.isComposing) return;
-  if (e.key === "Enter") {
+  if (e.key === "Enter" && !e.shiftKey) {
     e.preventDefault();
-    document.getElementById("send-btn").click();
+    sendBtn.click();
   }
 });
 
 // ==========================================
-// メニューバーの開閉・外側クリック・リサイズ対応（完全統合版）
+// 6. ★新機能：入力中に自動で高さを調整する処理
+// ==========================================
+userInput.addEventListener("input", function() {
+  this.style.height = "auto"; // 一度高さをリセット（文字を消した時に縮めるため）
+  this.style.height = this.scrollHeight + "px"; // 文字の量（中身の高さ）にピッタリ合わせる
+});
+
+// ==========================================
+// 7. メニューバーの開閉・外側クリック・リサイズ対応（完全統合版）
 // ==========================================
 const sidebar = document.getElementById("sidebar");
 const menuBtn = document.getElementById("menu-btn");

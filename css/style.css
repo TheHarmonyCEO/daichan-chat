@@ -6,9 +6,12 @@ body {
   background-color: #ffffff;
 }
 
+/* 画面全体のコンテナ */
 .app-container {
   display: flex;
   height: 100vh;
+  height: 100dvh; /* スマホのツールバー変化に対応 */
+  overflow: hidden;
 }
 
 /* ==========================================
@@ -17,10 +20,11 @@ body {
 #sidebar {
   width: 260px;
   background-color: #fff9f4;
-  transition: width 0.3s ease, padding 0.3s ease, opacity 0.2s ease;
+  transition: width 0.3s ease, padding 0.3s ease, opacity 0.2s ease, transform 0.3s ease;
   overflow: hidden;
   box-sizing: border-box;
   border-right: 1px solid #eee;
+  flex-shrink: 0;
 }
 
 #sidebar.collapsed {
@@ -52,20 +56,37 @@ body {
 }
 
 /* ==========================================
-   メイン画面・ヘッダー
+   メイン画面・ヘッダー（Gemini風透過）
    ========================================== */
 #main-content {
-  flex: 1;
+  flex: 1; /* サイドバーの横で画面いっぱい広がるように */
   display: flex;
   flex-direction: column;
+  height: 100dvh;
+  overflow: hidden;
+  position: relative; /* ヘッダーを浮かせるための基準 */
+  background-color: #ffffff; /* 背景色を設定 */
 }
 
 header {
-  padding: 15px 20px;
+  position: absolute; 
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 60px; 
   display: flex;
   align-items: center;
-  border-bottom: 1px solid #eee;
+  padding: 0 15px;
+  box-sizing: border-box;
+  z-index: 10;
+  /* ★透明度を85%(0.85)から50%(0.5)に下げました！ */
+  background-color: rgba(255, 255, 255, 0.5) !important; 
+  /* ★ぼかしの強度を10pxから12pxに少し上げて、すりガラス感を強調 */
+  backdrop-filter: blur(12px) !important; 
+  -webkit-backdrop-filter: blur(12px) !important; 
+  border-bottom: 1px solid rgba(0,0,0,0.05);
 }
+
 #menu-btn {
   background: none;
   border: none;
@@ -73,17 +94,15 @@ header {
   color: #555;
   cursor: pointer;
   margin-right: 15px;
-  position: relative;
-  z-index: 10000;
 }
-.header-logo { height: 28px; margin-left: 10px; }
+.header-logo { height: 28px; }
 
 /* ==========================================
-   チャットエリア
+   チャットエリア（ここだけがスクロールする）
    ========================================== */
 #chat-area {
   flex: 1;
-  padding: 20px 15px; 
+  padding: 80px 15px 40px 15px; /* ★ヘッダーの裏に隠れないよう上余白を80pxに！ */
   overflow-y: auto;
   display: flex;
   flex-direction: column;
@@ -141,36 +160,44 @@ header {
 }
 
 /* ==========================================
-   入力エリア（フッター）
+   入力エリア（Gemini風の自動伸縮ボックス）
    ========================================== */
 footer {
-  padding: 10px 20px 20px 20px; 
+  padding: 10px 20px 24px 20px; 
   background-color: #ffffff;
+  flex-shrink: 0;
+  position: relative;
+  z-index: 5;
 }
+
+/* 入力欄を囲む外枠（薄グレーのパーツ） */
 .input-wrapper {
-  border: 1px solid #ddd;
-  border-radius: 28px;
-  padding: 2px 15px; 
+  border: none;
+  border-radius: 26px;
+  padding: 6px 16px; 
   display: flex;
-  align-items: center;
+  align-items: flex-end; 
   gap: 10px;
-  background-color: #f1f3f4;
+  background-color: #f0f4f9; 
   max-width: 800px; 
   margin: 0 auto;
+  box-sizing: border-box;
 }
+
 .icon-btn {
   background: none;
   border: none;
   font-size: 1.2rem;
   color: #777;
   cursor: pointer;
-  padding: 6px; 
+  padding: 8px 4px; 
   display: flex;
   align-items: center;
   justify-content: center;
+  align-self: flex-end;
 }
 
-/* ★変更箇所：送信ボタンのアニメーション */
+/* 送信ボタン（↑） */
 .send-btn { 
   color: #d17a1a; 
   font-weight: bold; 
@@ -178,22 +205,33 @@ footer {
   height: 36px;
   border-radius: 50%;
   transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  align-self: flex-end;
+  margin-bottom: 2px;
 }
-/* マウスを乗せた時（hover）と、押した時（active）に濃いオレンジ丸＋白文字になる */
 .send-btn:hover,
 .send-btn:active {
   background-color: #d17a1a !important;
   color: #ffffff !important;
 }
 
+/* ★新しくなったテキストエリア型入力欄 */
 #user-input {
   flex: 1;
   background: none;
   border: none;
-  font-size: 1rem;
+  font-size: 16px; 
   color: #333;
   padding: 8px 0; 
   outline: none;
+  resize: none; 
+  font-family: inherit;
+  line-height: 1.5;
+  max-height: 150px; 
+  box-sizing: border-box;
 }
 
 /* ==========================================
@@ -201,13 +239,16 @@ footer {
    ========================================== */
 @media (max-width: 768px) {
   #chat-area {
-    padding: 20px 15px !important;
+    /* ★ここが上書きされてしまっていたので、80pxに修正！ */
+    padding: 80px 15px 30px 15px !important;
   }
   #sidebar {
     position: fixed !important;
-    top: 0; left: 0 !important;
+    top: 0; 
+    left: 0 !important;
     width: 260px !important;
     height: 100vh !important;
+    height: 100dvh !important;
     z-index: 9999 !important;
     transform: translateX(-100%) !important;
     opacity: 1 !important;
