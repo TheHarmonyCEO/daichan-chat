@@ -73,7 +73,7 @@ header {
   top: 0;
   left: 0;
   width: 100%;
-  height: 60px; 
+  height: 45px; 
   display: flex;
   align-items: center;
   padding: 0 15px;
@@ -144,11 +144,14 @@ header {
 
 /* --- ユーザーの吹き出し --- */
 .message.user {
-  flex-direction: row-reverse;
+  flex-direction: row-reverse !important;
+  width: 100%;
 }
+
 .message.user .icon {
   display: none; 
 }
+
 .message.user .text {
   background-color: #f0f4f9 !important; 
   color: #333 !important;
@@ -157,6 +160,10 @@ header {
   font-size: 0.95rem;
   line-height: 1.5;
   max-width: 80%;
+  white-space: pre-wrap; /* 意図した改行をそのまま表示 */
+  word-wrap: break-word; /* 枠を突き破らないように強制改行 */
+  margin-left: auto !important; /* ★強制的に右側に押し寄せる絶対的な設定 */
+  text-align: left; /* 吹き出しの中の文字は左揃えで自然に */
 }
 
 /* ==========================================
@@ -174,12 +181,12 @@ footer {
 .input-wrapper {
   border: none;
   border-radius: 26px;
-  padding: 6px 16px; 
+  padding: o.5px 16px; 
   display: flex;
-  align-items: flex-end; 
+  align-items: center; 
   gap: 10px;
   background-color: #f0f4f9; 
-  max-width: 800px; 
+  max-width: 600px; 
   margin: 0 auto;
   box-sizing: border-box;
 }
@@ -194,7 +201,6 @@ footer {
   display: flex;
   align-items: center;
   justify-content: center;
-  align-self: flex-end;
 }
 
 /* 送信ボタン（↑） */
@@ -209,8 +215,6 @@ footer {
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  align-self: flex-end;
-  margin-bottom: 2px;
 }
 .send-btn:hover,
 .send-btn:active {

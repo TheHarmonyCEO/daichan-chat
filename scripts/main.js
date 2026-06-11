@@ -254,12 +254,29 @@ sendBtn.addEventListener("click", async () => {
   }
 });
 
-// キーボードでのEnter送信処理（Shift+Enterなら改行できるようにする）
-userInput.addEventListener("keydown", function(e) {
-  if (e.isComposing) return;
-  if (e.key === "Enter" && !e.shiftKey) {
-    e.preventDefault();
-    sendBtn.click();
+// エンターキーが押された時の処理
+userInput.addEventListener('keydown', (event) => {
+  // ★追加：日本語の漢字変換中（IME入力中）のEnterは無視する！
+  if (event.isComposing) {
+    return;
+  }
+
+  if (event.key === 'Enter') {
+    // 画面の幅をチェックして、スマホ（768px以下）かどうか判定
+    const isMobile = window.innerWidth <= 768;
+
+    if (isMobile) {
+      // スマホの場合は何もしない（改行だけさせる）
+      return; 
+    } else {
+      // PCの場合：Shiftキーと一緒に押されていなければ送信する
+      if (!event.shiftKey) {
+        event.preventDefault(); // デフォルトの改行を防ぐ
+        
+        // 送信ボタンをプログラム的にクリックする
+        document.getElementById('send-btn').click(); 
+      }
+    }
   }
 });
 
