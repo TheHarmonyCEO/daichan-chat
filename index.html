@@ -7,31 +7,52 @@
   <!-- CSSの読み込み -->
   <link rel="stylesheet" href="css/style.css">
 </head>
+
 <body>
+  <!-- 1. アプリ全体のコンテナ -->
+  <div class="app-container">
 
-  <div class="chat-container">
-    <!-- ヘッダー部分 -->
-    <header>
-      <h1>だいちゃん</h1>
-      <p>〜 のんびりお話ししましょう 〜</p>
-    </header>
-
-    <!-- チャットのやり取りが表示されるエリア -->
-    <main id="chat-area">
-      <!-- 最初の挨拶（動作確認用のダミーデータ） -->
-      <div class="message daichan">
-        <div class="bubble">こんにちは！だいちゃんです。今日はお話しできて嬉しいな。</div>
+    <!-- 2. サイドバー（履歴エリア） -->
+    <aside id="sidebar">
+      <div class="sidebar-header">
+        <!-- 先ほど書き換えた見出し -->
+        <h3 style="font-size: 0.9rem; color: #888; margin-left: 10px;">過去の会話</h3>
       </div>
+      <div class="history-list">
+        <!-- 今後、ここに自動で履歴が並びます -->
+      </div>
+    </aside>
+
+    <!-- 3. メイン画面（チャットエリア） -->
+    <main id="main-content">
+      <!-- 上部のヘッダー -->
+      <header>
+        <button id="menu-btn">☰</button>
+        <!-- 文字を消して、ロゴ画像を表示するようにしました -->
+        <img src="logo_1.png" alt="だいちゃん" class="header-logo">
+      </header>
+
+      <!-- メッセージエリア -->
+      <div id="chat-area">
+        <!-- メッセージはJavaScriptで自動的にここに入ります -->
+      </div>
+
+      <!-- 入力エリア（Gemini完全再現） -->
+      <footer>
+        <div class="input-wrapper">
+          <button class="icon-btn plus-btn">＋</button>
+          <!-- ★プレースホルダーを変更 -->
+          <input type="text" id="user-input" placeholder="だいちゃんと会話" autocomplete="off">
+          <button id="send-btn" class="icon-btn send-btn">↑</button>
+        </div>
+        <!-- ★このフッターの免責事項テキストをまるごと削除 -->
+        <!-- <div class="footer-note">だいちゃんはAIであり、間違えることがあります。</div> -->
+      </footer>
     </main>
 
-    <!-- 入力と送信エリア -->
-    <footer>
-      <input type="text" id="user-input" placeholder="ここにお返事を書いてね" autocomplete="off">
-      <button id="send-btn">送信</button>
-    </footer>
   </div>
 
-  <!-- JavaScriptの読み込み (Firebaseを使うので type="module" にしておきます) -->
+  <!-- JavaScriptの読み込み -->
   <script type="module" src="js/main.js"></script>
 </body>
 </html>
