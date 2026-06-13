@@ -1,4 +1,19 @@
 // ==========================================
+// キャッシュ強制クリア＆最新バージョン読み込み
+// ==========================================
+const APP_VERSION = "1.0.1"; // ★アプリを更新するたびに、ここの数字を変える！
+const savedVersion = localStorage.getItem("app_version");
+
+if (savedVersion !== APP_VERSION) {
+  // バージョンが違う（＝アップデートされた）場合、新しいバージョンを保存
+  localStorage.setItem("app_version", APP_VERSION);
+  
+  // URLのお尻に現在時刻の数字をくっつけて、強制的にキャッシュを無視した再読み込みを実行
+  window.location.href = window.location.href.split('?')[0] + '?t=' + new Date().getTime();
+}
+// ==========================================
+
+// ==========================================
 // 1. Gemini APIと話題データ（data.js）の読み込み
 // ==========================================
 import { GoogleGenerativeAI } from "https://esm.run/@google/generative-ai";
