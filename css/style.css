@@ -181,7 +181,7 @@ footer {
 .input-wrapper {
   border: none;
   border-radius: 26px;
-  padding: o.5px 16px; 
+  padding: 5px 16px; 
   display: flex;
   align-items: center; 
   gap: 10px;
@@ -261,5 +261,22 @@ footer {
   #sidebar.collapsed {
     transform: translateX(0) !important;
     width: 260px !important;
+  }
+
+/* 1. アイコンを強制的に大きいまま（80px）維持し、絶対に縮ませない */
+  .message.daichan .icon {
+    width: 80px !important;
+    height: 80px !important;
+    flex-shrink: 0 !important; /* ★画面が狭くても勝手に縮むのを防ぐ絶対条件 */
+    margin-left: 0 !important;
+  }
+
+  /* 2. 吹き出しの幅を制限して、右側に「入れ違い」の空間を作る */
+  .message.daichan .text {
+    margin-left: 0 !important; 
+    padding: 12px 18px !important; 
+    z-index: auto; 
+    /* アイコンが大きくなる分、吹き出しが右端にくっつかないよう55%に制限 */
+    max-width: 55% !important; 
   }
 }
