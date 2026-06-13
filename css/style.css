@@ -268,15 +268,15 @@ footer {
     width: 80px !important;
     height: 80px !important;
     flex-shrink: 0 !important; /* ★画面が狭くても勝手に縮むのを防ぐ絶対条件 */
-    margin-left: 0 !important;
+    margin-left: -25px !important;
   }
 
   /* 2. 吹き出しの幅を制限して、右側に「入れ違い」の空間を作る */
   .message.daichan .text {
-    margin-left: 0 !important; 
+    margin-left: -20px !important; 
     padding: 12px 18px !important; 
     z-index: auto; 
     /* アイコンが大きくなる分、吹き出しが右端にくっつかないよう55%に制限 */
-    max-width: 55% !important; 
+    max-width: 60% !important; 
   }
 }
