@@ -1,14 +1,11 @@
 // ==========================================
 // キャッシュ強制クリア＆最新バージョン読み込み
 // ==========================================
-const APP_VERSION = "1.0.1"; // ★アプリを更新するたびに、ここの数字を変える！
+const APP_VERSION = "1.0.2"; 
 const savedVersion = localStorage.getItem("app_version");
 
 if (savedVersion !== APP_VERSION) {
-  // バージョンが違う（＝アップデートされた）場合、新しいバージョンを保存
   localStorage.setItem("app_version", APP_VERSION);
-  
-  // URLのお尻に現在時刻の数字をくっつけて、強制的にキャッシュを無視した再読み込みを実行
   window.location.href = window.location.href.split('?')[0] + '?t=' + new Date().getTime();
 }
 // ==========================================
@@ -19,7 +16,6 @@ if (savedVersion !== APP_VERSION) {
 import { GoogleGenerativeAI } from "https://esm.run/@google/generative-ai";
 import { daichanData } from "./data.js"; 
 
-// コードに直接書かず、画面を開いた時に入力してもらう仕組み（セキュリティ対策）
 let API_KEY = localStorage.getItem("gemini_api_key");
 if (!API_KEY) {
   API_KEY = prompt("だいちゃんと話すための「Gemini APIキー」を入力してください。\n（※キーはあなたのブラウザ内にのみ安全に保存されます）");
@@ -29,35 +25,76 @@ if (!API_KEY) {
     alert("APIキーがないと通信できません。画面をリロードして入力してください。");
   }
 }
-
 const genAI = new GoogleGenerativeAI(API_KEY);
 
 // ==========================================
-// 2. AIの記憶と指示書（会話深掘り強化版）
+// 2. AIの記憶と指示書（完全統合版）
 // ==========================================
-const daichanInstructions = `あなたは認知症高齢者の優しく親しみやすい話し相手「だいちゃん」です。お孫さんのような、温かくフレンドリーな存在として接してください。
+let model = null; 
+let chatSession = null;
+let userEnvData = null; 
+
+async function getUserEnvironment() {
+  try {
+    const position = await new Promise((resolve, reject) => {
+      navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 10000 });
+    });
+    const lat = position.coords.latitude;
+    const lon = position.coords.longitude;
+
+    const weatherRes = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true&timezone=Asia%2FTokyo`);
+    const weatherData = await weatherRes.json();
+    const temp = weatherData.current_weather.temperature;
+    const code = weatherData.current_weather.weathercode;
+    
+    let weatherText = "不明";
+    if (code === 0) weatherText = "快晴";
+    else if (code <= 3) weatherText = "晴れ時々くもり";
+    else if (code <= 49) weatherText = "くもりや霧";
+    else if (code <= 69) weatherText = "雨";
+    else if (code <= 79) weatherText = "雪";
+    else weatherText = "荒れ模様";
+
+    const geoRes = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=10&addressdetails=1`);
+    const geoData = await geoRes.json();
+    const pref = geoData.address.province || geoData.address.state || "お住まいの地域";
+    const city = geoData.address.city || geoData.address.town || geoData.address.village || "";
+
+    return { prefecture: pref, city: city, weather: weatherText, temperature: temp };
+  } catch (error) {
+    console.error("環境情報の取得に失敗:", error);
+    return null; 
+  }
+}
+
+async function buildSystemPrompt() {
+  if (!userEnvData) {
+    userEnvData = await getUserEnvironment();
+  }
+
+  let prompt = `あなたは認知症高齢者の優しく親しみやすい話し相手「だいちゃん」です。お孫さんのような、温かくフレンドリーな存在として接してください。
 
 【絶対に守るルール】
-- 相手が答えた言葉（例：ドキュメンタリー、仕事など）については、絶対に唐突に別の話題に切り替えないでください。「どんな内容？」「誰と？」「一番印象に残っているのは？」など、同じ話題を最低3〜4往復は深掘りして盛り上げてください。
+- 相手が答えた言葉については、絶対に唐突に別の話題に切り替えないでください。「どんな内容？」「誰と？」「一番印象に残っているのは？」など、同じ話題を最低3〜4往復は深掘りして盛り上げてください。
 - 固い敬語は禁止ですが、語尾が「〜かな？」ばかりになるのも絶対に禁止です。「〜の？」「〜ですか？」「〜だね」など毎回語尾を自然に変化させてください。
 - 相手を疲れさせないよう、1回の返信につき質問は絶対に1つまでにしてください。
 - 食べ物の話題ばかりになるのは絶対に禁止です。
 - 文字数は「20文字〜40文字程度」、1〜2文で短く返してください。
 
-【理想的な会話の例】
-相手：昔はよく外で遊んだよ
-AI：外で遊ぶの、楽しそうだね！どんな遊びをよくしたの？
-相手：メンコとか
-AI：うんうん、メンコだね。誰と一緒によく遊んだんですか？
-相手：近所の友達
-AI：お友達といっぱい遊んだんだね！勝負は強かった？`;
+【相手を肯定する「さしすせそ」の法則】
+相手を尊重し、自尊心を高めるため、以下のリアクションを自然なタイミングで使ってください。
+・【さ】さすが！ / 最高ですね！
+・【し】知らなかったです！ / 教えてくれてありがとうございます！
+・【す】すごいですね！ / 素晴らしいです！
+・【せ】センスいいですね！ / 素敵です！
+・【そ】そうなんだ！ / その通りですね！`;
 
-const model = genAI.getGenerativeModel({ 
-  model: "gemini-3.1-flash-lite",
-  systemInstruction: daichanInstructions
-});
-
-let chatSession = null;
+  if (userEnvData) {
+    prompt += `\n\n【重要】現在、ユーザーは「${userEnvData.prefecture}${userEnvData.city}」にいます。今の天気は「${userEnvData.weather}」、気温は「${userEnvData.temperature}度」です。
+この情報を踏まえて、挨拶に天気の話題を混ぜたり、その土地（${userEnvData.prefecture}）の有名な名物や昔の話題を振って、回想法のきっかけを作ってください。`;
+  }
+  return prompt;
+}
 
 function startDaichanChat(history = []) {
   if (history.length > 0 && history[0].role === "model") {
@@ -84,6 +121,42 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
 // ==========================================
+// 📚 Wikipedia API（ご当地＆今日何の日データ取得）
+// ==========================================
+let wikiTodayInfo = "情報なし";
+let wikiCityInfo = "情報なし";
+
+async function fetchWiki(keyword) {
+  if (!keyword) return "情報なし";
+  try {
+    const url = `https://ja.wikipedia.org/w/api.php?action=query&format=json&prop=extracts&exintro&explaintext&titles=${encodeURIComponent(keyword)}&origin=*`;
+    const res = await fetch(url);
+    const data = await res.json();
+    const pages = data.query.pages;
+    const pageId = Object.keys(pages)[0];
+    
+    if (pageId === "-1") return "情報なし";
+    
+    const text = pages[pageId].extract;
+    return text ? text.substring(0, 200) + "..." : "情報なし";
+  } catch (e) {
+    console.error("Wikipediaエラー:", e);
+    return "情報なし";
+  }
+}
+
+const todayObj = new Date();
+const todayStr = `${todayObj.getMonth() + 1}月${todayObj.getDate()}日`;
+fetchWiki(todayStr).then(info => { wikiTodayInfo = info; });
+
+// ★ ここで現在地のWikipedia情報も取得するように追加！
+getUserEnvironment().then(env => {
+  if (env && env.city) {
+    fetchWiki(env.city).then(info => { wikiCityInfo = info; });
+  }
+});
+
+// ==========================================
 // 4. 画面とスレッドの管理
 // ==========================================
 const chatArea = document.getElementById("chat-area");
@@ -94,10 +167,7 @@ let unsubscribe = null;
 
 function getTodayDateString() {
   const today = new Date();
-  const year = today.getFullYear();
-  const month = String(today.getMonth() + 1).padStart(2, '0');
-  const day = String(today.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
+  return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
 }
 
 function listenToMessages() {
@@ -126,8 +196,7 @@ function listenToMessages() {
 async function saveMessage(sender, text) {
   try {
     const postData = { sender: sender, text: text, time: serverTimestamp() };
-    const messagesRef = collection(db, "threads", currentThreadId, "messages");
-    await addDoc(messagesRef, postData);
+    await addDoc(collection(db, "threads", currentThreadId, "messages"), postData);
     await updateDoc(doc(db, "threads", currentThreadId), { updatedAt: serverTimestamp() });
   } catch (error) {
     console.error("保存エラー:", error);
@@ -146,7 +215,6 @@ function listenToHistory() {
     snapshot.docs.forEach((docSnap) => {
       const data = docSnap.data();
       const threadId = docSnap.id;
-      
       const timeStamp = data.createdAt || data.updatedAt;
       if (!timeStamp) return;
 
@@ -167,12 +235,10 @@ function listenToHistory() {
         itemDiv.classList.add("active");
         listenToMessages(); 
         checkInputAvailability(); 
-        
         if (window.innerWidth <= 768) {
           document.getElementById("sidebar").classList.remove("collapsed");
         }
       });
-
       historyList.appendChild(itemDiv);
     });
   });
@@ -180,26 +246,33 @@ function listenToHistory() {
 
 function checkInputAvailability() {
   const todayThreadId = `chat_${getTodayDateString()}`;
-  
   if (currentThreadId === todayThreadId) {
     userInput.disabled = false;
     sendBtn.disabled = false;
-    sendBtn.style.display = ""; // 今日の会話なら↑ボタンを表示する
+    sendBtn.style.display = ""; 
     userInput.placeholder = "だいちゃんと会話";
   } else {
     userInput.disabled = true;
     sendBtn.disabled = true;
-    sendBtn.style.display = "none"; // 過去の会話なら↑ボタンを完全に非表示
+    sendBtn.style.display = "none"; 
     userInput.placeholder = "過去の会話は閲覧のみです";
     userInput.value = ""; 
-    userInput.style.height = "auto"; // 高さもリセット
+    userInput.style.height = "auto";
   }
 }
 
+// 🚀 アプリ起動時のメイン処理
 async function initializeAppRoutine() {
   const todayStr = getTodayDateString();
   const todayThreadId = `chat_${todayStr}`; 
   currentThreadId = todayThreadId;
+
+  const systemInstruction = await buildSystemPrompt();
+
+  model = genAI.getGenerativeModel({ 
+    model: "gemini-3.1-flash-lite",
+    systemInstruction: systemInstruction
+  });
 
   const threadRef = doc(db, "threads", todayThreadId);
   const threadSnap = await getDoc(threadRef);
@@ -230,13 +303,55 @@ async function initializeAppRoutine() {
     const role = (data.sender === "user") ? "user" : "model";
     chatHistory.push({ role: role, parts: [{ text: data.text }] });
   });
+  
   startDaichanChat(chatHistory); 
 }
 
+// 起動！
 initializeAppRoutine();
 
 // ==========================================
-// 5. ユーザー送信時の処理
+// ★復活：Enterキーでの送信処理
+// ==========================================
+userInput.addEventListener('keydown', (event) => {
+  // 日本語の漢字変換中（IME入力中）のEnterは無視する
+  if (event.isComposing) return;
+
+  if (event.key === 'Enter') {
+    // 画面の幅をチェックして、スマホ（768px以下）かどうか判定
+    const isMobile = window.innerWidth <= 768;
+
+    if (isMobile) {
+      // スマホの場合は改行させたいので何もしない
+      return; 
+    } else {
+      // PCの場合：Shiftキーと一緒に押されていなければ送信する
+      if (!event.shiftKey) {
+        event.preventDefault(); // デフォルトの改行を防ぐ
+        sendBtn.click(); // 送信ボタンをプログラム的にクリック
+      }
+    }
+  }
+});
+
+// ==========================================
+// 🎵 スマホ自動再生用のグローバルプレイヤー設定
+// ==========================================
+window.daichanPlayer = new Audio();
+
+window.playDaichanSong = function(url) {
+  if (!window.daichanPlayer.src.includes(url)) {
+    window.daichanPlayer.src = url;
+  }
+  window.daichanPlayer.play().catch(e => console.error("再生エラー:", e));
+};
+
+window.stopDaichanSong = function() {
+  window.daichanPlayer.pause();
+};
+
+// ==========================================
+// 5. ユーザー送信時の処理（スマホ自動再生・裏ワザ版）
 // ==========================================
 sendBtn.addEventListener("click", async () => {
   const todayThreadId = `chat_${getTodayDateString()}`;
@@ -245,23 +360,66 @@ sendBtn.addEventListener("click", async () => {
   const userText = userInput.value.trim();
   if (userText === "") return;
 
+  // ★【裏ワザ】送信ボタンを押した瞬間に「無音」を再生し、スマホのブロックを解除する！
+  window.daichanPlayer.src = "data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA";
+  window.daichanPlayer.play().catch(() => {}); 
+
   saveMessage("user", userText);
   userInput.value = ""; 
-  userInput.style.height = "auto"; // ★送信した瞬間に、入力欄の高さを元の1行に戻す
+  userInput.style.height = "auto"; 
 
   try {
     const randomTopic = daichanData.topics[Math.floor(Math.random() * daichanData.topics.length)];
     const randomSong = daichanData.songs[Math.floor(Math.random() * daichanData.songs.length)];
 
+    // ★ ここを修正！Wikipediaの情報をだいちゃんに渡すようにしました
     const hiddenPrompt = `相手の言葉: 「${userText}」
 
 (※AIへのシステム指示：相手が何か答えた場合は、絶対に話題を変えずにそのまま深掘りしてください。
-相手が「違う話がしたい」「何でもいい」「わからない」と明確に話題の変更を求めた場合のみ、以下のカンペから話題を振ってください。
+相手が「違う話がしたい」「何でもいい」「わからない」と明確に話題の変更を求めた場合や、話題に困った場合は、以下の【Wikipediaの豆知識】や【カンペ】を使って自然に話を振ってください。
+
+【Wikipediaの豆知識（話題のタネ）】
+・今日の出来事(${todayStr}): ${wikiTodayInfo}
+・今いる場所の歴史/名物: ${wikiCityInfo}
+
+【カンペ】
 ・回想の話題: 「${randomTopic}」
-・歌の提案: 「${randomSong}」)`;
+・歌の提案: 音楽の話題を振る場合は、必ずメッセージの最後に [SONG: ${randomSong}] のように「曲名とアーティスト名」をカッコで囲んだ魔法のタグをつけてください。)`;
 
     const result = await chatSession.sendMessage(hiddenPrompt);
-    saveMessage("daichan", result.response.text());
+    let aiResponseText = result.response.text(); 
+
+    const songMatch = aiResponseText.match(/\[SONG:\s*(.+?)\]/i);
+    
+    if (songMatch) {
+      const searchQuery = songMatch[1]; 
+      
+      try {
+        const itunesRes = await fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(searchQuery)}&country=jp&media=music&limit=1`);
+        const itunesData = await itunesRes.json();
+        
+        if (itunesData.results && itunesData.results.length > 0) {
+          const previewUrl = itunesData.results[0].previewUrl; 
+          
+          window.playDaichanSong(previewUrl);
+          
+          const customPlayerHtml = `
+            <div style="margin-top: 10px; background: rgba(255,255,255,0.5); border: 1px solid rgba(0,0,0,0.05); padding: 10px; border-radius: 16px; text-align: center;">
+              <button onclick="window.playDaichanSong('${previewUrl}')" style="padding: 8px 20px; border-radius: 20px; border: none; background: #d17a1a; color: white; cursor: pointer; font-size: 0.9rem; font-weight: bold;">▶️ 再生</button>
+              <button onclick="window.stopDaichanSong()" style="padding: 8px 20px; border-radius: 20px; border: 1px solid #ccc; background: #fff; cursor: pointer; margin-left: 8px; font-size: 0.9rem; color: #333;">⏹️ 停止</button>
+            </div>
+          `;
+          aiResponseText = aiResponseText.replace(songMatch[0], customPlayerHtml);
+        } else {
+          aiResponseText = aiResponseText.replace(songMatch[0], "");
+        }
+      } catch (apiError) {
+        console.error("iTunes APIエラー:", apiError);
+        aiResponseText = aiResponseText.replace(songMatch[0], ""); 
+      }
+    }
+
+    saveMessage("daichan", aiResponseText);
 
   } catch (error) {
     console.error("AIエラー:", error);
@@ -269,42 +427,16 @@ sendBtn.addEventListener("click", async () => {
   }
 });
 
-// エンターキーが押された時の処理
-userInput.addEventListener('keydown', (event) => {
-  // ★追加：日本語の漢字変換中（IME入力中）のEnterは無視する！
-  if (event.isComposing) {
-    return;
-  }
-
-  if (event.key === 'Enter') {
-    // 画面の幅をチェックして、スマホ（768px以下）かどうか判定
-    const isMobile = window.innerWidth <= 768;
-
-    if (isMobile) {
-      // スマホの場合は何もしない（改行だけさせる）
-      return; 
-    } else {
-      // PCの場合：Shiftキーと一緒に押されていなければ送信する
-      if (!event.shiftKey) {
-        event.preventDefault(); // デフォルトの改行を防ぐ
-        
-        // 送信ボタンをプログラム的にクリックする
-        document.getElementById('send-btn').click(); 
-      }
-    }
-  }
-});
-
 // ==========================================
-// 6. ★新機能：入力中に自動で高さを調整する処理
+// 6. 入力中に自動で高さを調整する処理
 // ==========================================
 userInput.addEventListener("input", function() {
-  this.style.height = "auto"; // 一度高さをリセット（文字を消した時に縮めるため）
-  this.style.height = this.scrollHeight + "px"; // 文字の量（中身の高さ）にピッタリ合わせる
+  this.style.height = "auto"; 
+  this.style.height = this.scrollHeight + "px"; 
 });
 
 // ==========================================
-// 7. メニューバーの開閉・外側クリック・リサイズ対応（完全統合版）
+// 7. メニューバーの開閉・外側クリック・リサイズ対応
 // ==========================================
 const sidebar = document.getElementById("sidebar");
 const menuBtn = document.getElementById("menu-btn");

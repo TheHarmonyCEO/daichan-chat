@@ -280,3 +280,46 @@ footer {
     max-width: 60% !important; 
   }
 }
+
+/* ==========================================
+   PC画面（769px以上）の時のレイアウト調整（Gemini風）
+   ========================================== */
+@media (min-width: 769px) {
+  /* チャットエリア全体（見えない柱）を中央に寄せて、最大幅を制限 */
+  #chat-area {
+    max-width: 760px; /* ★ここが全体の基準幅になります */
+    margin: 0 auto;
+    width: 100%;
+  }
+
+  /* 吹き出しのラッパー（アイコン＋テキストを囲む透明な枠） */
+  .message {
+    max-width: 100% !important; /* #chat-areaの幅いっぱいに広げる */
+    margin: 0 !important;
+  }
+
+  /* だいちゃんの吹き出し（オレンジ色の部分）の最大幅を制限 */
+  .message.daichan .text {
+    /* アイコンの幅（80px）と少しの隙間を引いた分だけ広がるようにする */
+    max-width: calc(100% - 90px) !important; 
+  }
+
+  /* ユーザーの吹き出し（右側）の最大幅を制限 */
+  .message.user .text {
+    max-width: 80% !important; /* ユーザー側は少し短めにしてメリハリをつける */
+  }
+
+  /* 入力ボックス（下のグレーの枠）の横幅を、上の#chat-areaと完全に揃える */
+  .input-wrapper {
+    max-width: 760px !important; /* ★ここを#chat-areaと同じ数値にする！ */
+    width: 100%;
+    margin: 0 auto !important;
+  }
+
+  /* フッター全体の整列 */
+  footer {
+    display: flex;
+    justify-content: center;
+    width: 100%;
+  }
+}
