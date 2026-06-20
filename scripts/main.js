@@ -360,7 +360,10 @@ sendBtn.addEventListener("click", async () => {
   const userText = userInput.value.trim();
   if (userText === "") return;
 
-  // ★【裏ワザ】送信ボタンを押した瞬間に「無音」を再生し、スマホのブロックを解除する！
+  // ★ここが修正点1：自分が返信した瞬間に、鳴っている歌を自動でピタッと止める
+  window.stopDaichanSong();
+
+  // ★【裏ワザ】送信ボタンを押した瞬間に「無音」を再生し、スマホのブロックを解除する
   window.daichanPlayer.src = "data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA";
   window.daichanPlayer.play().catch(() => {}); 
 
@@ -372,7 +375,7 @@ sendBtn.addEventListener("click", async () => {
     const randomTopic = daichanData.topics[Math.floor(Math.random() * daichanData.topics.length)];
     const randomSong = daichanData.songs[Math.floor(Math.random() * daichanData.songs.length)];
 
-    // ★ ここを修正！Wikipediaの情報をだいちゃんに渡すようにしました
+    // ★ここが修正点2：カンペの指示を「ネガティブな時・反応が薄い時」に変更
     const hiddenPrompt = `相手の言葉: 「${userText}」
 
 (※AIへのシステム指示：相手が何か答えた場合は、絶対に話題を変えずにそのまま深掘りしてください。
@@ -384,7 +387,11 @@ sendBtn.addEventListener("click", async () => {
 
 【カンペ】
 ・回想の話題: 「${randomTopic}」
-・歌の提案: 音楽の話題を振る場合は、必ずメッセージの最後に [SONG: ${randomSong}] のように「曲名とアーティスト名」をカッコで囲んだ魔法のタグをつけてください。)`;
+・歌の提案: 【最重要】以下のいずれかの条件に当てはまる場合のみ、相手を元気づけたり癒やしたりする言葉と一緒に、メッセージの最後に [SONG: ${randomSong}] の魔法のタグをつけてください。
+  1. 相手が「疲れた」「痛い」「悲しい」などネガティブな発言をした時
+  2. 相手の反応が「わからない」「別に」など薄く、会話が弾まない時
+  3. 相手から直接「歌が聞きたい」とリクエストされた時
+※上記以外の、普通の楽しい会話が続いている最中は、絶対にタグをつけないでください。)`;
 
     const result = await chatSession.sendMessage(hiddenPrompt);
     let aiResponseText = result.response.text(); 
